@@ -17,12 +17,14 @@
 package com.example.advertiserapp.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.advertiserapp.data.Destination
 import com.example.mmpsdk.MmpSdkImpl
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 class PrivacySandboxViewModel(
     private val mmpSdk: MmpSdkImpl?
@@ -45,19 +47,19 @@ class PrivacySandboxViewModel(
         // Join a custom audience when the user presses on a destination
         // This custom audience allows us to target the user with ads
         // specific to the destination they are interested in
-        mmpSdk?.let {
-            it.joinCustomAudience(ca)
-        }
-    }
-
-    fun registerTrigger(attributionIdentifier: String): String? {
-        mmpSdk?.let {
-            return try {
-                it.registerTrigger(attributionIdentifier).get()
-            } catch (e: Exception) {
-                "registerTrigger failed"
+            mmpSdk?.let {
+                this.viewModelScope.launch {
+                    it.joinCustomAudience(ca)
+                }
             }
         }
-        return null
+
+
+    fun registerTrigger(attributionIdentifier: String) {
+        mmpSdk?.let {
+            this.viewModelScope.launch {
+                it.registerTrigger(attributionIdentifier)
+            }
+        }
     }
 }

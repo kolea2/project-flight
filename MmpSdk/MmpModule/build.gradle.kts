@@ -53,4 +53,5 @@ dependencies {
     implementation("com.google.android.material:material:1.8.0")
     implementation ("androidx.concurrent:concurrent-futures:1.1.0")
     implementation("com.google.android.gms:play-services-base:18.2.0")
+    implementation("androidx.privacysandbox.ads:ads-adservices:1.1.0-beta12")
 }

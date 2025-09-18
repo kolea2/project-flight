@@ -20,12 +20,14 @@ import android.annotation.SuppressLint
 import android.util.Log
 import android.view.MotionEvent
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.publisherapp.model.PageData
 import com.example.sspsdk.SspSdkImpl
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 class PrivacySandboxViewModel(
     private val sspSdk: SspSdkImpl?
@@ -37,7 +39,7 @@ class PrivacySandboxViewModel(
     init {
         _uiState.update { currentState ->
             currentState.copy(
-                adUrl = retrieveAd()
+                adUrl = retrieveAd().toString()
             )
         }
     }
@@ -58,39 +60,33 @@ class PrivacySandboxViewModel(
      * Uses Protected Audience to retrieve an ad to show in the article.
      */
     @SuppressLint("NewApi")
-    private fun retrieveAd(): String? {
+    private fun retrieveAd() {
         sspSdk?.let {
-            try {
-                // Retrieve the ad to render. Here we are rending the ad immediately, but
-                // this outcome can be fetched early and then delay rendering the ad.
-                val outcome = it.runAdSelection().get()
-                outcome?.let {
+            this.viewModelScope.launch {
+                val outcome = it.runAdSelection()
+                outcome.let {
                     val adSelectionId = it.adSelectionId
-                    sspSdk?.let {
-                        it.reportImpression(adSelectionId).get()
+                    sspSdk.let {
+                        it.reportImpression(adSelectionId)
                         it.reportEvent(adSelectionId, "view", "{example_event_data: \"ad viewed\"}")
                     }
-                    return it.renderUri.toString()
                 }
-            } catch (e: Exception) {
-                Log.e("Flight Publisher", "runAdSelection failed", e)
             }
         }
-        return null
     }
 
     /**
      * Uses Attribution Reporting API to register that the ad was clicked.
      */
     fun registerSource(event: MotionEvent): String? {
+        var toReturn = "error"
         sspSdk?.let {
-            return try {
-                sspSdk.registerSource(getAttributionIdentifier(), event).get()
-            } catch (e: Exception) {
-                "registerSource failed"
+            this.viewModelScope.launch {
+                sspSdk.registerSource(getAttributionIdentifier(), event)
+                toReturn = "success"
             }
         }
-        return null
+        return toReturn
     }
 
     /*
